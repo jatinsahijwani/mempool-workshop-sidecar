@@ -596,6 +596,30 @@ export class Config {
   }
 }
 
+/**
+ * ERC-8421 CALLING-040: "Precompiles that access nothing in the blockchain
+ * state or environment are allowed. These include the core precompiles 0x01
+ * to 0x11 and the P256VERIFY precompile."
+ *
+ * Each one is safe to allow in validation because it is:
+ *  - pure: its output is a function of its input alone;
+ *  - stateless: it reads no storage, balance, code, block or transaction
+ *    field, so no other transaction or new block can change its result, and
+ *    a pending transaction calling it can't be mass-invalidated through it;
+ *  - deterministic: every node computes the same result;
+ *  - gas-bounded: its price is set by its input and counts against the
+ *    validation gas limit.
+ * 0x01 ecrecover, 0x02 sha256, 0x03 ripemd160, 0x04 identity, 0x05 modexp,
+ * 0x06-0x08 BN254 add/mul/pairing, 0x09 blake2f, 0x0a KZG point evaluation,
+ * 0x0b-0x11 BLS12-381 (EIP-2537), 0x100 P256VERIFY (EIP-7951).
+ * An operator can still narrow this with `precompiles` in the config, or
+ * with the PRECOMPILES environment variable.
+ */
+export const DEFAULT_PRECOMPILES: string[] = [
+  ...Array.from({ length: 0x11 }, (_, i) => i + 1),
+  0x100,
+].map((n) => `0x${n.toString(16).padStart(40, "0")}`);
+
 const bundlerDefaultConfigs: BundlerConfig = {
   beneficiary: "",
   minInclusionDenominator: 10,
@@ -668,7 +692,7 @@ const bundlerDefaultConfigs: BundlerConfig = {
   epSimulationsContract: "",
   pimlicoSimulationsContract: "",
   binarySearchMaxRetries: 3,
-  precompiles: [],
+  precompiles: DEFAULT_PRECOMPILES,
   relayOpsWithWhitelistedEntities: false,
 };
 

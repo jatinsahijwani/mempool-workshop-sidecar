@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Config } from "../src/config.js";
+import { Config, DEFAULT_PRECOMPILES } from "../src/config.js";
 
 describe("Config.explorerEnabled", () => {
   it("is false unless the explorer option is set", () => {
@@ -46,5 +46,24 @@ describe("Config.getNetworkConfig stakingRegistryAddress", () => {
       if (previous === undefined) delete process.env.SKANDHA_STAKING_REGISTRY_ADDRESS;
       else process.env.SKANDHA_STAKING_REGISTRY_ADDRESS = previous;
     }
+  });
+});
+
+describe("Config.getNetworkConfig precompiles (ERC-8421 CALLING-040)", () => {
+  const at = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
+
+  it("allows the pure precompiles 0x01-0x11 and P256VERIFY by default", () => {
+    const config = new Config({ config: null, unsafeMode: false, redirectRpc: false });
+    const precompiles = config.getNetworkConfig().precompiles;
+    expect(precompiles).toEqual(DEFAULT_PRECOMPILES);
+    expect(precompiles).toHaveLength(18);
+    for (let n = 1; n <= 0x11; n++) expect(precompiles).toContain(at(n));
+    expect(precompiles).toContain(at(0x100));
+    expect(precompiles).not.toContain(at(0x12));
+    expect(precompiles).not.toContain(at(0));
+  });
+
+  it("is lowercase, as the code-access check compares with addr.toLowerCase()", () => {
+    for (const a of DEFAULT_PRECOMPILES) expect(a).toBe(a.toLowerCase());
   });
 });
